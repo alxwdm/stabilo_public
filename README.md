@@ -17,6 +17,15 @@ This challenge offers great learning opportunity, covering all ML steps from pre
 
 **About the Data:** The task in [stage 1](https://stabilodigital.com/data/) is to classify 26 upper case letters. In total, 100 volunteers provided over 13k samples of hand-written letters. The recordings are saved as csv-files on a per-person basis. The "challenge owner" provided a helper script to split the individual characters from the recording files. I have modified the script and built it into an Apache Beam pipeline. I used Apache Beam primarily for training purposes, but in theory the pipeline scales so that the csv-recordings can be processed in parallel. Within the pipeline, I also separate the data into a train/dev/test set based on a given training ratio. To avoid data leakage, the splitting needs to be done on a per-person basis.
 
+```
+p = beam.Pipeline()
+filepaths = (p 
+    | 'matchfiles' >> beam.io.fileio.MatchFiles(known_args.filepath + '*/sensor_data.csv')
+    | 'readmatches' >> beam.io.fileio.ReadMatches()
+    | 'getpaths' >> beam.Map(lambda x: (x.metadata.path))
+    | 'filterpaths' >> beam.Map(filter_path))
+  datasets = filepaths | 'split' >> beam.Map(split_char_and_dataset, known_args.filepath, float(known_args.ratio))
+```
 
 Here's a code snippet on how the Apache Beam pipeline is called. The script inputs a directory to the data and a desired training ratio and saves the split characters as individual csv-files into train/dev/test folders.
 
