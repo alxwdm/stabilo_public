@@ -45,28 +45,29 @@ The gyroscope data shows a high variance between persons and different character
 
 **Preprocessing:** After the initial data splitting, each csv-recording contains a single training sample. Now it is time for the actual preprocessing pipeline. I will use the tf.data API for this, which is an efficient and scalable way to handle the data. 
 
-Here are a few datapoints of a single recording from the tf.data.Dataset after reading in the csv files. The example below does not show any downstream preprocessing functions applied to the data:
+The goal of the preprocessing pipeline is to create a tf.data.Dataset and apply mapping functions to it. I used a generator function that reads the files and yields tuples of `(feature, label)` pairs. The feature tensor contains all the data from the csv-files. For the label tensor I chose to encode it as a sparse categorical integer. After applying downstream preprocessing functions (and also depending on the mode), the data is shuffled and batched into `(batch_size, timesteps, n_features)` mini-batches and ready for training. 
+
+Here is how the input function looks like (some lines of code are truncated):
 
 ```
-dataset = tf.data.Dataset(...) # some code to create the dataset
-
-for batch, label in dataset.take(1):
-  print("{:10s}: {}".format("Label",label[0]))
-  for key, value in batch.items():
-    print("{:10s}: {}".format(key,value.numpy()[0:9]))
-
-Label     : b'S'
-Acc1 X    : [-7878. -8023. -7892. -7862. -7673. -8003. -7886. -7856. -7804.]
-Acc1 Y    : [12740. 13243. 12917. 12900. 12783. 13101. 12709. 12711. 12697.]
-Acc1 Z    : [-6597. -6755. -6748. -6474. -6396. -6395. -6250. -6212. -6297.]
-Acc2 X    : [-1938. -1952. -1719. -1674. -1741. -1967. -1978. -1937. -2048.]
-Acc2 Y    : [-3119. -3259. -3197. -3195. -3171. -3171. -3212. -3142. -3134.]
-Acc2 Z    : [1509. 1608. 1629. 1683. 1646. 1616. 1508. 1527. 1601.]
-Gyro X    : [-76. -41. -21. -13. -25. -30.  -9.  12.   2.]
-Gyro Y    : [ 85. 115.  31.  13. -34.   1. -41.  -9.   6.]
-Gyro Z    : [133. 141. 111.  33. -18. -11.   1.  -4.  35.]
-Mag X     : [-74. -75. -75. -76. -76. -74. -77. -75. -77.]
-Mag Y     : [142. 141. 142. 143. 143. 140. 142. 138. 140.]
-Mag Z     : [263. 263. 261. 261. 260. 259. 261. 259. 259.]
-Force     : [1. 1. 2. 5. 8. 7. 7. 5. 5.]
+def _input_fn()
+  # a python generator that reads the csv files and turns them into (feature, label) tensors.
+  def _generator():
+    # (...)
+    yield feature, label
+  # generate the tf.data.Dataset
+  dataset = tf.data.Dataset.from_generator(_generator, output_types=(tf.float32, tf.int32))
+  # apply preprocessing functions (such as normalization etc.)
+  dataset = dataset.map(preproc_fn_1) \
+                   .map(preproc_fn_2)
+  # determine the mode, shuffle and repeat only when in training 
+  if mode == tf.estimator.ModeKeys.TRAIN:
+    dataset = dataset.shuffle(buffer_size=BUFFER_SIZE) \
+                       .padded_batch(BATCH_SIZE, padded_shapes=([None,N_FEATURES],1)) \
+                       .repeat(TRAIN_STEPS) \
+                       .prefetch(PREFETCH_SIZE)
+  else:
+    dataset = dataset.padded_batch(BATCH_SIZE, padded_shapes=([None,N_FEATURES],1)) \
+                       .prefetch(PREFETCH_SIZE)
+  return dataset
 ```
