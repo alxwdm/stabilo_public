@@ -51,9 +51,8 @@ Here is how the input function looks like (some lines of code are truncated):
 
 ```
 def _input_fn()
-  # a python generator that reads the csv files and turns them into (feature, label) tensors.
   def _generator():
-    # (...)
+    # (...) a generator that reads the csv files and yields (feature, label) tensors
     yield feature, label
   # generate the tf.data.Dataset
   dataset = tf.data.Dataset.from_generator(_generator, output_types=(tf.float32, tf.int32))
@@ -63,11 +62,11 @@ def _input_fn()
   # determine the mode, shuffle and repeat only when in training 
   if mode == tf.estimator.ModeKeys.TRAIN:
     dataset = dataset.shuffle(buffer_size=BUFFER_SIZE) \
-                       .padded_batch(BATCH_SIZE, padded_shapes=([None,N_FEATURES],1)) \
-                       .repeat(TRAIN_STEPS) \
-                       .prefetch(PREFETCH_SIZE)
+                      .padded_batch(BATCH_SIZE, padded_shapes=([None,N_FEATURES],1)) \
+                      .repeat(TRAIN_STEPS) \
+                      .prefetch(PREFETCH_SIZE)
   else:
     dataset = dataset.padded_batch(BATCH_SIZE, padded_shapes=([None,N_FEATURES],1)) \
-                       .prefetch(PREFETCH_SIZE)
+                     .prefetch(PREFETCH_SIZE)
   return dataset
 ```
