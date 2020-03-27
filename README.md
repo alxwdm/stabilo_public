@@ -9,9 +9,9 @@ This year, the [UbiComp Conference](http://ubicomp.org/ubicomp2020/) has announc
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/stabilo_digipen.png" width="500">
 </p>
   
-For me, this multi-staged machine learning challenge is a great way to get more hands-on experience on raw, multi-variate, time-series data. I don't really aim to win the competition (although I wouldn't mind doing so), but instead I want to improve my skills and continue my ML journey. With this in mind, I will not solely aim for the highest score, but I will try to apply some tools that I have learned recently. For example, I want to use an Apache Beam pipeline as one of the preprocessing steps. 
+For me, this multi-staged machine learning challenge is a great way to get more hands-on experience on raw, multi-variate, time-series data. I don't really aim to win the competition, but instead I want to improve my skills and continue my ML journey. With this in mind, I will not solely aim for the highest score, but I will try to apply some cool tools for learning purposes. For example, I will use an Apache beam pipeline for the initial character splitting, although a script with that functionality has already been provided.
 
-This challenge offers great learning opportunity, covering all ML steps from preprocessing to deployment. In the beginning, I will do most of the work in a private repo, occasionally publishing code snippets as the project progresses. Later, I'll publish all of the code. Stay tuned! 
+This challenge offers great learning opportunity, covering all ML steps from preprocessing to deployment. I will do most of the work in a private repo, occasionally publishing code snippets as the project progresses. Stay tuned! 
 
 # Stage 1 - 26 upper case letters
 
@@ -36,12 +36,12 @@ python -m split_char_and_sets \
   --ratio "${TRAIN_RATIO}"
 ```
 
-**Visualization:** There is no machine learning without making friends with the data. It is interessting to see whether there is a visual difference in the sensor data of the same character between different persons, and also how much the individual characters vary.
+**Visualization:** There is no machine learning without making friends with the data. It is interessting to see whether there is a visual difference in the sensor data of the same character between different persons, and also how much the individual characters vary. I have looked at several charts from the data set, here are two example plots.
 
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/raw_data_gyro.png">
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/raw_data_force.png">
 
-The gyroscope data shows a high variance between persons and different characters are not visually distinguishable. However, the recorded force shows quite a unique temporal pattern for each letter, with varying amplitude between persons. 
+The gyroscope data shows a high variance between persons. Also, the signal is quite noisy and different characters are not visually distinguishable. However, the recorded force shows quite a unique temporal pattern for each letter, with varying amplitude between persons. From looking at the data, I guess that the raw force signal has the highest feature importance in an end-to-end approach. Also, it seems that advanced preprocessing and feature engineering will be necessary in order to get useful information out of the other sensor data. 
 
 **Preprocessing with the tf.data API:** After the initial data splitting, each csv-recording contains a single training sample. Now it is time for the actual preprocessing pipeline. I will use the [tf.data API](https://www.tensorflow.org/api_docs/python/tf/data/Dataset) for this, which is an efficient and scalable way to handle the data. 
 
@@ -71,11 +71,11 @@ def _input_fn()
   return dataset
 ```
 
-**Model workflow with the tf.estimator API:** I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
+**Model workflow:** I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
 
-**Unit testing and sanity checks:** Currently, the integration of **custom keras models into the tf.estimator API** is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work. This was indeed a very bumpy road, but finally the estimator passed the testing and sanity checks I applied for debugging. For example, I checked whether the initial sparse cross entropy loss around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample.
+**Unit testing and sanity checks:** Currently, the integration of **custom keras models into the tf.estimator API** is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work. This was indeed a very bumpy road, but finally the estimator passed the testing and sanity checks I applied for debugging. For example, I checked whether the initial sparse cross entropy loss around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample in order to verify the training workflow.
 
-Here is the prediction output after training on one sample for a few iterations:
+Here is the prediction output after training on one sample for a few iterations (it works!):
 ```
 Debugging model...
 Predicted character (index): A (0)
