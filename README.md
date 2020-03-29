@@ -103,7 +103,7 @@ writer.write(serialized_dataset)
 Changing from csv to tfrecord improved the training speed at least by a factor of 10. There are further ways to optimize input pipelines with the tf.data API, as it can be [read in this guide](https://www.tensorflow.org/guide/data_performance). The following picture (inpired by the guide linked above) demonstrates how things like prefetching, parallel processing and so on can increase the GPU usage - and thus speed up training - when reading the data is the bottleneck:
 
 <p align="center">
-<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/data_pipeline.png" width="900">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/data_pipeline.png" width="600">
 </p>
 
 **Model workflow:** I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
