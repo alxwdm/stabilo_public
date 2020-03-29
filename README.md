@@ -71,6 +71,41 @@ def _input_fn()
   return dataset
 ```
 
+**Improving input pipeline performace:** As mentioned before, each sample is stored in a separate csv-file after the initial character splitting. In a professional cloud environment, this may be the typical use case for ETL-pipelines. However, storing the data on Google Drive and reading it into Colab does not scale. In fact, reading the data turned out to be a bottleneck in my training workflow. This is why I have transformed the dataset into a binary tfrecord-file. You can read about TFRecord in [this TensorFlow guide](https://www.tensorflow.org/tutorials/load_data/tfrecord). To do so, the tensors from the original dataset must be converted to a serialized string using tf.Example. Using the existing (csv-based) dataset from above, it looks something like this:
+
+```
+def serialize_example(elem):
+  # extract features and labels from dataset element and serialize tensors
+  features = elem[0]
+  labels = elem[1]
+  feature_string = tf.io.serialize_tensor(features)
+  label_string = tf.io.serialize_tensor(labels)
+  # turn data into tf.Example message
+  data = {'features': tf.train.Feature(bytes_list=tf.train.BytesList(value=[feature_string.numpy()])),
+          'labels': tf.train.Feature(bytes_list=tf.train.BytesList(value=[label_string.numpy()]))}
+  example_proto = tf.train.Example(features=tf.train.Features(feature=data))
+  # return serialized tf.Example
+  return example_proto.SerializeToString()
+
+# helper generator function that yields serialized examples
+def _generator():
+  for elem in dataset:
+    yield serialize_example(elem)
+
+# create serialized dataset from helper generator 
+serialized_dataset = tf.data.Dataset.from_generator(_generator, output_types=tf.string, output_shapes=())
+
+# save the data as *.tfrecord file
+writer = tf.data.experimental.TFRecordWriter(filename)
+writer.write(serialized_dataset)
+```
+
+Changing from csv to tfrecord improved the training speed at least by a factor of 10. There are further ways to optimize input pipelines with the tf.data API, as it can be [read in this guide](https://www.tensorflow.org/guide/data_performance). The following picture (inpired by the guide linked above) demonstrates how things like prefetching, parallel processing and so on can increase the GPU usage - and thus speed up training - when reading the data is the bottleneck:
+
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/data_pipeline.png" width="900">
+</p>
+
 **Model workflow:** I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
 
 **Unit testing and sanity checks:** Currently, the integration of **custom keras models into the tf.estimator API** is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work. This was indeed a very bumpy road, but finally the estimator passed the testing and sanity checks I applied for debugging. For example, I checked whether the initial sparse cross entropy loss around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample in order to verify the training workflow.
