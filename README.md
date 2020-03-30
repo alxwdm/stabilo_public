@@ -13,9 +13,11 @@ For me, this multi-staged machine learning challenge is a great way to get more 
 
 This challenge offers great learning opportunity, covering all ML steps from preprocessing to deployment. I will do most of the work in a private repo, occasionally publishing code snippets as the project progresses. Stay tuned! 
 
-# Stage 1 - 26 upper case letters
+# Stage 1 - Classify 26 upper case letters
 
-**About the Data:** The task in [stage 1](https://stabilodigital.com/data/) is to classify 26 upper case letters. In total, 100 volunteers provided over 13k samples of hand-written letters. The recordings are saved as csv-files on a per-person basis. The "challenge owner" provided a helper script to split the individual characters from the recording files. I have modified the script and built it into an Apache Beam pipeline. I used Apache Beam primarily for training purposes, but in theory the pipeline scales so that the csv-recordings can be processed in parallel. Within the pipeline, I also separate the data into a train/dev/test set based on a given training ratio. To avoid data leakage, the splitting needs to be done on a per-person basis.
+## Data Preparation with Apache Beam
+
+The task in [stage 1](https://stabilodigital.com/data/) is to classify 26 upper case letters. In total, 100 volunteers provided over 13k samples of hand-written letters. The recordings are saved as csv-files on a per-person basis. The "challenge owner" provided a helper script to split the individual characters from the recording files. I have modified the script and built it into an Apache Beam pipeline. I used Apache Beam primarily for training purposes, but in theory the pipeline scales so that the csv-recordings can be processed in parallel. Within the pipeline, I also separate the data into a train/dev/test set based on a given training ratio. To avoid data leakage, the splitting needs to be done on a per-person basis.
 
 ```
 p = beam.Pipeline()
@@ -36,14 +38,18 @@ python -m split_char_and_sets \
   --ratio "${TRAIN_RATIO}"
 ```
 
-**Visualization:** There is no machine learning without making friends with the data. It is interessting to see whether there is a visual difference in the sensor data of the same character between different persons, and also how much the individual characters vary. I have looked at several charts from the data set, here are two example plots.
+## Visualization 
+
+There is no machine learning without making friends with the data. It is interessting to see whether there is a visual difference in the sensor data of the same character between different persons, and also how much the individual characters vary. I have looked at several charts from the data set, here are two example plots.
 
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/raw_data_gyro.png">
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/raw_data_force.png">
 
 The gyroscope data shows a high variance between persons. Also, the signal is quite noisy and different characters are not visually distinguishable. However, the recorded force shows quite a unique temporal pattern for each letter, with varying amplitude between persons. From looking at the data, I guess that the raw force signal has the highest feature importance in an end-to-end approach. Also, it seems that advanced preprocessing and feature engineering will be necessary in order to get useful information out of the other sensor data. 
 
-**Preprocessing with the tf.data API:** After the initial data splitting, each csv-recording contains a single training sample. Now it is time for the actual preprocessing pipeline. I will use the [tf.data API](https://www.tensorflow.org/api_docs/python/tf/data/Dataset) for this, which is an efficient and scalable way to handle the data. 
+## Preprocessing pipeline with the tf.data API
+
+After the initial data splitting, each csv-recording contains a single training sample. Now it is time for the actual preprocessing pipeline. I will use the [tf.data API](https://www.tensorflow.org/api_docs/python/tf/data/Dataset) for this, which is an efficient and scalable way to handle the data. 
 
 The goal of the preprocessing pipeline is to create a tf.data.Dataset and apply mapping functions to it. I used a generator function that reads the files and yields tuples of `(feature, label)` pairs. The feature tensor contains all the data from the csv-files. For the label tensor I chose to encode it as a sparse categorical integer. After applying downstream preprocessing functions (and also depending on the mode), the data is shuffled and batched into `(batch_size, timesteps, n_features)` mini-batches and ready for training. 
 
@@ -106,9 +112,11 @@ Changing from csv to tfrecord improved the training speed at least by a factor o
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/data_pipeline.png" width="600">
 </p>
 
-**Model workflow:** I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
+## Model workflow and debugging with the tf.estimator API
 
-**Unit testing and sanity checks:** Currently, the integration of **custom keras models into the tf.estimator API** is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work. This was indeed a very bumpy road, but finally the estimator passed the testing and sanity checks I applied for debugging. For example, I checked whether the initial sparse cross entropy loss around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample in order to verify the training workflow.
+I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/python/tf/estimator) as a framework for the modelling workflow. This is a very powerful and highly optimized API which is capable of both local and distributed multi-server training without having to change the code. One of the core principles of the tf.estimator API is to separate the data pipeline from the model. Also, the checkpointing and logging is done for you and ready to be visualized with TensorBoard. I will not mention more details, but instead I provide a link to the official [tf.estimator Guide](https://www.tensorflow.org/guide/estimator) and a link to a [comprehensive article on tds](https://towardsdatascience.com/an-advanced-example-of-tensorflow-estimators-part-1-3-c9ffba3bff03) about the framework.
+
+**Unit testing and sanity checks:** Currently, the integration of custom keras models into the tf.estimator API is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work, diving deep into TensorFlow.  Finally, the estimator passed the testing and sanity checks I applied for debugging. For example, I had to modify the loss function so I checked whether the initial sparse cross entropy loss is around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample in order to verify the training workflow with `tf.GradientTape()`.
 
 Here is the prediction output after training on one sample for a few iterations (it works!):
 ```
@@ -116,4 +124,15 @@ Debugging model...
 Predicted character (index): A (0)
 Predicted probabilities: [9.9965453e-01 2.4235590e-06 ... 1.0922228e-05]
 Loss for debug sample: 0.0003456472
+```
+
+## Training and Serving
+
+In order to iterate more quickly, I have reduced the classification task down to just the letters A, B and C. After training for a few epochs and without a thorough model architecture or hyperparameter search, I was able to reach an accuracy close to 97% on the dev set. When it comes to serving, the use of the tf.estimator API pays off. Following [this guide] (https://www.tensorflow.org/guide/saved_model#savedmodels_from_estimators), writing a prediction function was fairly easy. The function takes a path to a csv-file as input and converts the data into a feature tensor. Then, the model is loaded and the features are passed to the `serving_input_receiver_fn` of the estimator, where the preprocessing takes place. Finally, the predicted letter and corresponding probability of the softmax output is printed out. 
+
+As you can see below, a sample from the dev set is correctly classified with high accuracy:
+```
+FILE_PATH = DATA_PATH + 'dev_reduced/15_1_A.csv'
+prediction = predict(FILE_PATH)
+Predicted character A with a probability of 99.99%.
 ```
