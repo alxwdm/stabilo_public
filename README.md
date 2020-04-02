@@ -137,7 +137,7 @@ prediction = predict(FILE_PATH)
 Predicted character A with a probability of 99.99%.
 ```
 
-For deployment, the model needs to be converted into an executable that runs in a Windows 10 command window. After passing a directory string to the csv-files and to the calibration file, the results should be printed in a certain format (see [submission details](https://stabilodigital.com/submissions/). Here is a sample output from the test set - person number 36 - with the model trained on the reduced data. The file name indicates the correct label (this will not be the case in the submission, so don't think about cheating). The predictions are accurate!
+For deployment, the model needs to be converted into an executable that runs in a Windows 10 command window. After passing a directory string to the csv-files and to the calibration file, the results should be printed in a certain format (see [submission details](https://stabilodigital.com/submissions/). Here is a sample output from the test set - person number 36 - with the model trained on the reduced data. The file name indicates the correct label (this will not be the case for the challenge validation files, so don't think about cheating) and the letter printed after the three stars is the prediction for that file. For the reduced classification task, the predictions are accurate!
 ```
 /STABILO/challenge1_data/test_reduced/36_1_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_3_C.csv***C~~~
 /STABILO/challenge1_data/test_reduced/36_27_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_2_B.csv***B~~~
