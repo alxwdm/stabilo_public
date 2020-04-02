@@ -126,7 +126,7 @@ Predicted probabilities: [9.9965453e-01 2.4235590e-06 ... 1.0922228e-05]
 Loss for debug sample: 0.0003456472
 ```
 
-## Training and Serving
+## Training, Serving and Deployment
 
 In order to iterate more quickly, I have reduced the classification task down to just the letters A, B and C. After training for a few epochs and without a thorough model architecture or hyperparameter search, I was able to reach an accuracy close to 97% on the dev set. When it comes to serving, the use of the tf.estimator API pays off. Following [this guide](https://www.tensorflow.org/guide/saved_model#savedmodels_from_estimators), writing a prediction function was fairly easy. The function takes a path to a csv-file as input and converts the data into a feature tensor. Then, the model is loaded and the features are passed to the `serving_input_receiver_fn` of the estimator, where the preprocessing takes place. Finally, the predicted letter and corresponding probability of the softmax output is printed out. 
 
@@ -135,4 +135,11 @@ As you can see below, a sample from the dev set is correctly classified with hig
 FILE_PATH = DATA_PATH + 'dev_reduced/15_1_A.csv'
 prediction = predict(FILE_PATH)
 Predicted character A with a probability of 99.99%.
+```
+
+For deployment, the model needs to be converted into an executable that runs in a Windows 10 command window. After passing a directory string to the csv-files and to the calibration file, the results should be printed in a certain format (see [submission details](https://stabilodigital.com/submissions/). Here is a sample output from the test set - person number 36 - with the model trained on the reduced data. The file name indicates the correct label (this will not be the case in the submission, so don't think about cheating). The predictions are accurate!
+```
+/STABILO/challenge1_data/test_reduced/36_1_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_3_C.csv***C~~~
+/STABILO/challenge1_data/test_reduced/36_27_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_2_B.csv***B~~~
+/STABILO/challenge1_data/test_reduced/36_29_C.csv***C~~~/STABILO/challenge1_data/test_reduced/36_28_B.csv***B~~~
 ```
