@@ -144,3 +144,10 @@ Finally, I have trained on the complete dataset to classify all 26 upper-case ch
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/param_tuning.png" width="600">
 </p>
 
+**Error Analysis:** Without fine-tuning, the accuracy on the dev set gets close to 80% after about 50 epochs, which is not too bad for 26 classes (random guessing yields about 4% accuracy). Plotting the confusion matrix gives interessting insights:
+
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/confusion_matrix.png" width="400">
+</p>
+
+Most of the characters are classified correctly with high accuracy. However, some characters appear to be particularly difficult to recognize. Besides the "usual suspects" from image-based classification tasks such as `(I, J)`, it turned out that characters with similar temporal force patterns are confused by the model - as already suspected in the visualization section above. For example, `P` almost always gets classified as `D`. Other characters with similar force patterns are `(O, D)`, `(X, T)` and `(L, C)`. In order to distinguish those pairs with higher accuracy, I guess it would be necessary to apply further preprocessing to the input signals. However, training for a longer time and fine-tuning the hyperparameters might also boost up the accuracy.
