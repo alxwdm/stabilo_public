@@ -3,21 +3,21 @@ Public Repo for the STABILO Ubicomp 2020 Challenge
 
 # About the Challenge
 
-This year, the [UbiComp Conference](http://ubicomp.org/ubicomp2020/) has announced a [Time-Series Classification Challenge](http://ubicomp.org/ubicomp2020/cfp/challenge.html). The competition is about the [STABILO DigiPen](https://www.stabilodigital.com), a sensor-equipped pen that writes on normal paper. The goal is basically about recognizing hand-written letters with the sensor information. 
+The [UbiComp 2020 Conference](http://ubicomp.org/ubicomp2020/) has announced a [Time-Series Classification Challenge](http://ubicomp.org/ubicomp2020/cfp/challenge.html). The competition is about the [STABILO DigiPen](https://www.stabilodigital.com), a sensor-equipped pen that writes on normal paper. The goal is basically about recognizing hand-written letters with the sensor information. 
 
 <p align="center">
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/stabilo_digipen.png" width="500">
 </p>
   
-For me, this multi-staged machine learning challenge is a great way to get more hands-on experience on raw, multi-variate, time-series data. I don't really aim to win the competition, but instead I want to improve my skills and continue my ML journey. With this in mind, I will not solely aim for the highest score, but I will try to apply some cool tools for learning purposes. For example, I will use an Apache beam pipeline for the initial character splitting, although a script with that functionality has already been provided.
-
-This challenge offers great learning opportunity, covering all ML steps from preprocessing to deployment. I will do most of the work in a private repo, occasionally publishing code snippets as the project progresses. Stay tuned! 
+This multi-staged machine learning challenge is a great way to get hands-on experience on raw, multi-variate, time-series data. I don't  aim to win the competition, but instead I want to improve my skills and continue my ML journey. With this in mind, I do not solely aim for the highest accuracy score, but I try to apply some cool ML tools and features for learning purposes. In stage 1, I have used an Apache beam pipeline for the initial character splitting, a scalable preprocessing pipeline with the tf.data API and the tf.estimator API for training and serving. Most of my work is done in a private repo and I occasionally publish code snippets as the project progresses. Stay tuned! 
 
 # Stage 1 - Classify 26 upper case letters
 
+The task in [stage 1](https://stabilodigital.com/data/) is to classify 26 upper case letters. In total, 100 volunteers provided over 13k samples of hand-written letters. Let's get started.
+
 ## Data Preparation with Apache Beam
 
-The task in [stage 1](https://stabilodigital.com/data/) is to classify 26 upper case letters. In total, 100 volunteers provided over 13k samples of hand-written letters. The recordings are saved as csv-files on a per-person basis. The "challenge owner" provided a helper script to split the individual characters from the recording files. I have modified the script and built it into an Apache Beam pipeline. I used Apache Beam primarily for training purposes, but in theory the pipeline scales so that the csv-recordings can be processed in parallel. Within the pipeline, I also separate the data into a train/dev/test set based on a given training ratio. To avoid data leakage, the splitting needs to be done on a per-person basis.
+The recordings are saved as csv-files on a per-person basis. The "challenge owner" provided a helper script to split the individual characters from the recording files. I have modified the script and built it into an Apache Beam pipeline. I used Apache Beam primarily for training purposes, but in theory the pipeline scales so that the csv-recordings can be processed in parallel. Within the pipeline, I also separate the data into a train/dev/test set based on a given training ratio. To avoid data leakage, the splitting needs to be done on a per-person basis.
 
 ```
 p = beam.Pipeline()
@@ -151,3 +151,8 @@ Finally, I have trained on the complete dataset to classify all 26 upper-case ch
 </p>
 
 Most of the characters are classified correctly with high accuracy. However, some characters appear to be particularly difficult to recognize. Besides the "usual suspects" from image-based classification tasks such as `(I, J)`, it turned out that characters with similar temporal force patterns are confused by the model - as already suspected in the visualization section above. For example, `P` almost always gets classified as `D`. Other characters with similar force patterns are `(P, D)`, `(X, T)` and `(L, C)`. In order to distinguish those pairs with higher accuracy, I guess it would be necessary to apply further preprocessing to the input signals. However, training for a longer time and fine-tuning the hyperparameters might also boost up the accuracy.
+
+# Stage 2 - Classify 52 upper and lower case letters
+
+The stage 2 data has been released. The classification task is extended to recognizing all 26 characters in both uppercase and lowercase, resulting into 52 classes in total. This means the workflow and most of the code that I have implemented in stage 1 can be re-used, with room for adaptions and improvement.
+
