@@ -141,6 +141,6 @@ For deployment, the model needs to be converted into an executable that runs in 
 Finally, I have trained on the complete dataset to classify all 26 upper-case characters. I used a model with multiple bidirectional LSTM and Dense layers with about 500k parameters in total. Training was done with SGD optimizer. Because of quota limits, I could not perform an intense hyperparameter search, but at least I was able to tune the learning rate and regularization parameters in order to reduce the overfitting that occured with the initial model. The following picture shows the learning curves from TensorBoard before and after the tuning. The smoothing parameter is set equally, the larger noise in the right is due to the higher dropout rate. 
 
 <p align="center">
-<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/param_tuning.png">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/param_tuning.png" width="600">
 </p>
 
