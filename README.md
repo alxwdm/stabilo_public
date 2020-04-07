@@ -118,17 +118,9 @@ I decided to use the [tf.estimator API](https://www.tensorflow.org/api_docs/pyth
 
 **Unit testing and sanity checks:** Currently, the integration of custom keras models into the tf.estimator API is not so seamless as it appears on a first glance. It took me an enourmous amount of effort and time to get everything to work, diving deep into TensorFlow.  Finally, the estimator passed the testing and sanity checks I applied for debugging. For example, I had to modify the loss function so I checked whether the initial sparse cross entropy loss is around the expected value of `-ln(1/N_CLASSES)`. Also, I tested whether the model is able to overfit to a single training sample in order to verify the training workflow with `tf.GradientTape()`.
 
-Here is the prediction output after training on one sample for a few iterations (it works!):
-```
-Debugging model...
-Predicted character (index): A (0)
-Predicted probabilities: [9.9965453e-01 2.4235590e-06 ... 1.0922228e-05]
-Loss for debug sample: 0.0003456472
-```
+**Debugging of Training, Serving and Deployment:** In order to iterate more quickly, I have reduced the classification task down to just the letters A, B and C. This makes debugging the rest of the workflow (i.e. training on more data, serving and deployment) faster. After training for a few epochs and without a thorough model architecture or hyperparameter search, I was able to reach an accuracy close to 97% on the dev set. 
 
-## Training, Serving and Deployment
-
-In order to iterate more quickly, I have reduced the classification task down to just the letters A, B and C. After training for a few epochs and without a thorough model architecture or hyperparameter search, I was able to reach an accuracy close to 97% on the dev set. When it comes to serving, the use of the tf.estimator API pays off. Following [this guide](https://www.tensorflow.org/guide/saved_model#savedmodels_from_estimators), writing a prediction function was fairly easy. The function takes a path to a csv-file as input and converts the data into a feature tensor. Then, the model is loaded and the features are passed to the `serving_input_receiver_fn` of the estimator, where the preprocessing takes place. Finally, the predicted letter and corresponding probability of the softmax output is printed out. 
+When it comes to serving, the use of the tf.estimator API pays off. Following [this guide](https://www.tensorflow.org/guide/saved_model#savedmodels_from_estimators), writing a prediction function was fairly easy. The function takes a path to a csv-file as input and converts the data into a feature tensor. Then, the model is loaded and the features are passed to the `serving_input_receiver_fn` of the estimator, where the preprocessing takes place. Finally, the predicted letter and corresponding probability of the softmax output is printed out. For batch prediction of multiple csv-files, the model is only loaded once.
 
 As you can see below, a sample from the dev set is correctly classified with high accuracy:
 ```
@@ -137,9 +129,18 @@ prediction = predict(FILE_PATH)
 Predicted character A with a probability of 99.99%.
 ```
 
-For deployment, the model needs to be converted into an executable that runs in a Windows 10 command window. After passing a directory string to the csv-files and to the calibration file, the results should be printed in a certain format (see [submission details](https://stabilodigital.com/submissions/)). Here is a sample output from the test set - person number 36 - with the model trained on the reduced data. The file name indicates the correct label (this will not be the case for the challenge validation files, so don't think about cheating) and the letter printed after the three stars is the prediction for that file. For the reduced classification task, the predictions are accurate!
+For deployment, the model needs to be converted into an executable that runs in a Windows 10 command window. After passing a directory string to the csv-files and to the calibration file, the results need to be printed in a certain format (see [submission details](https://stabilodigital.com/submissions/)). Here is a sample output from the test set - person number 36 - with the model trained on the reduced data. The file name indicates the correct label (this will not be the case for the challenge validation files, so don't think about cheating) and the letter printed after the three stars is the prediction for that file. For the reduced classification task, the predictions are accurate!
 ```
 /STABILO/challenge1_data/test_reduced/36_1_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_3_C.csv***C~~~
 /STABILO/challenge1_data/test_reduced/36_27_A.csv***A~~~/STABILO/challenge1_data/test_reduced/36_2_B.csv***B~~~
 /STABILO/challenge1_data/test_reduced/36_29_C.csv***C~~~/STABILO/challenge1_data/test_reduced/36_28_B.csv***B~~~
 ```
+
+## Training on the whole dataset and Error Analysis
+
+Finally, I have trained on the complete dataset to classify all 26 upper-case characters. I used a model with multiple bidirectional LSTM and Dense layers with about 500k parameters in total. Training was done with SGD optimizer. Because of quota limits, I could not perform an intense hyperparameter search, but at least I was able to tune the learning rate and regularization parameters in order to reduce the overfitting that occured with the initial model. The following picture shows the learning curves from TensorBoard before and after the tuning. The smoothing parameter is set equally, the larger noise in the right is due to the higher dropout rate. 
+
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/param_tuning.png">
+</p>
+
