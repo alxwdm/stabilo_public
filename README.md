@@ -1,6 +1,15 @@
 # stabilo_public
 Public Repo for the STABILO Ubicomp 2020 Challenge
 
+**Stage 1 Summary**:
+* ETL pipeline with **Apache Beam**
+* High performance **tf.data API** preprocessing during training
+* Training and Serving with **tf.estimator API**
+
+**Stage 2 Summary**:
+* Scale up training with **GCP AI Platform**
+* Advanced Hyperparameter Tuning using **Bayesian Optimization** 
+
 # About the Challenge
 
 The [UbiComp 2020 Conference](http://ubicomp.org/ubicomp2020/) has announced a [Time-Series Classification Challenge](http://ubicomp.org/ubicomp2020/cfp/challenge.html). The competition is about the [STABILO DigiPen](https://www.stabilodigital.com), a sensor-equipped pen that writes on normal paper. The goal is basically about recognizing hand-written letters with the sensor information. 
