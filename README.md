@@ -150,9 +150,49 @@ Finally, I have trained on the complete dataset to classify all 26 upper-case ch
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/confusion_matrix.png" width="500">
 </p>
 
-Most of the characters are classified correctly with high accuracy. However, some characters appear to be particularly difficult to recognize. Besides the "usual suspects" from image-based classification tasks such as `(I, J)`, it turned out that characters with similar temporal force patterns are confused by the model - as already suspected in the visualization section above. For example, `P` almost always gets classified as `D`. Other characters with similar force patterns are `(P, D)`, `(X, T)` and `(L, C)`. In order to distinguish those pairs with higher accuracy, I guess it would be necessary to apply further preprocessing to the input signals. However, training for a longer time and fine-tuning the hyperparameters might also boost up the accuracy.
+Most of the characters are classified correctly with high accuracy. However, some characters appear to be particularly difficult to recognize. Besides the "usual suspects" from image-based classification tasks such as `(I, J)`, it turned out that characters with similar temporal force patterns are confused by the model - as already suspected in the visualization section above. For example, `P` almost always gets classified as `D`. Other characters with similar force patterns are `(P, D)`, `(X, T)` and `(L, C)`. In order to distinguish those pairs with higher accuracy, I guess it would be necessary to apply further preprocessing to the input signals. In addition, training for a longer time and fine-tuning the hyperparameters might also boost up the accuracy.
 
 # Stage 2 - Classify 52 upper and lower case letters
 
-The stage 2 data has been released. The classification task is extended to recognizing all 26 characters in both uppercase and lowercase, resulting into 52 classes in total. This means the workflow and most of the code that I have implemented in stage 1 can be re-used, with room for adaptions and improvement.
+The stage 2 data has been released. The classification task is extended to recognizing all 26 characters in both uppercase and lowercase, resulting into 52 classes in total. This means the workflow and most of the code that I have implemented in stage 1 can be re-used, with room for adaptions and more complex model architectures.
 
+## Scale up training with GCP AI Platform
+
+I used my free GCP credits for this project to train at scale with the **GCP AI Platform**. The tf.estimator has only limited support for training in the cloud, i.e. advanced features such as Scaffolds are not supported. Therefore, I had to switch to "plain" tf.keras. With `tf.distribute.Strategy` it is easy to realise distributed training with different appraoches, such as Paramter Servers or a mirrored strategy. To save some of the credits, I set up a `OneDeviceStrategy` with a basic GPU tier.
+
+**Packaging the training application**: When using the AI Platform, it is necessary to package the training task into a `tar.gz` file that is executed in the cloud. With the following folder structure, [GCP packages the code automatically](https://cloud.google.com/ai-platform/training/docs/packaging-trainer):
+
+```
+├── setup.py
+└── trainer
+    ├── __init__.py
+    ├── model.py
+    ├── task.py
+    └── util.py
+```
+
+Most parts of the code can be found in `model.py`. There, a `train_and_evaluate` function should be implemented that calls the fit method of the keras model and callback functions for logging and so on. The `task.py` file is called from the training task. Therefore, it can be used for parsing arguments of hyperparameters and other settings. Other utility scripts may be added to the trainer folder and if there is a need to install further packages and dependencies, then this can be configured in the `setup.py` file. With the gcloud command `gcloud ai-platform jobs submit training`, the training job is submitted.
+
+**Hyperparameter Tuning**: A very efficient way for hyperparameter tuning is **Bayesian Optimization** instead of a naive grid or random search. Usually, the [optimal hyperparameters can be found](https://cloud.google.com/blog/products/gcp/hyperparameter-tuning-cloud-machine-learning-engine-using-bayesian-optimization) automatically, and with fewer iterations. The configuration can easily be done by passing a `hyperparam.yaml` file to the gcloud command. This is how submitting a hyperparameter tuning job to the looks like:
+
+```
+%%bash
+OUTDIR=gs://${BUCKET}/models/${model_name}/hyperparam
+JOBNAME=tuning_keras_$(date -u +%y%m%d_%H%M%S)
+echo $OUTDIR $REGION $JOBNAME
+gcloud ai-platform jobs submit training $JOBNAME \
+  --region=$REGION \
+  --module-name=trainer.task \
+  --package-path=$(pwd)/model/trainer \
+  --job-dir=$OUTDIR \
+  --staging-bucket=gs://$BUCKET \
+  --scale-tier=basic-gpu \
+  --runtime-version=$TFVERSION \
+  --python-version=$PYTHONVERSION \
+  --config=hyperparam.yaml \
+  -- \
+  --bucket=${BUCKET} \
+  --model_name=${model_name} \
+  --train_steps=50 \
+  --...
+```
