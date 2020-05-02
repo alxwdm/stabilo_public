@@ -9,6 +9,7 @@ Public Repo for the STABILO Ubicomp 2020 Challenge
 **Stage 2 Summary**:
 * Scale up training with **GCP AI Platform**
 * Advanced Hyperparameter Tuning using **Bayesian Optimization** 
+* Implementing a complex **combined model architecture** 
 
 # About the Challenge
 
@@ -205,3 +206,23 @@ gcloud ai-platform jobs submit training $JOBNAME \
   --train_steps=50 \
   --...
 ```
+
+## Thinking about model architectures
+
+With 52 different classes to recognize, it makes sense to start thinking about more complex model architectures instead of using a single model in an end-to-end approach to classify all characters at once. One part of such a combined model could be a binary classifier that tries to distinguish between uppercase and lowercase characters. 
+
+Here is a confusion matrix of a trained and tuned binary classifier. It gets close to 85% accuracy on the dev set.
+
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/binary_confusion.png">
+</p>
+
+In a combined model, it also makes sense to calculate conjoint probabilites instead of using absolute predictions. In the example of the binary classifier above, it means that the **probabilities** of being uppercase or lowercase are used in the downstream model pipeline and **not the predicted class** of the binary model. To evaluate how well this approach works, we will look at the confidence margin of the binary classifier. By "confidence margin" I mean the difference of the sigmoid output for `y=0` and `y=1`. If the value is close to 1, then the model is highly confident of predicting uppercase letters, and vice versa for a value close to -1. 
+
+Here is how the confidence margin is distributed in the dev set for the uppercase/lowercase classification task:
+
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/binary_confidence.png">
+</p>
+
+We can see that most of the time the binary classifier is very confident (p > 0.75). This information can be very useful when building a complex model pipeline.
