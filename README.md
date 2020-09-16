@@ -1,5 +1,5 @@
 # stabilo_public
-Public Repo for the STABILO Ubicomp 2020 Challenge
+Public Repo for the STABILO Ubicomp 2020 Challenge - this ReadMe serves as a project report.
 
 **Stage 1 Summary**:
 * ETL pipeline with **Apache Beam**
@@ -207,22 +207,26 @@ gcloud ai-platform jobs submit training $JOBNAME \
   --...
 ```
 
-## Thinking about model architectures
+## Optimized model architecture
 
-With 52 different classes to recognize, it makes sense to start thinking about more complex model architectures instead of using a single model in an end-to-end approach to classify all characters at once. One part of such a combined model could be a binary classifier that tries to distinguish between uppercase and lowercase characters. 
+With 52 different classes to recognize, it makes sense to start thinking about more complex model architectures instead of using a single model in an end-to-end approach to classify all characters at once. However, the core model architecture stays the same. It consists of two consecutive LSTM layers followed by two fully-connected layers, as shown in the following diagramm:
 
-Here is a confusion matrix of a trained and tuned binary classifier. It gets close to 85% accuracy on the dev set.
+<p align="center">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/model_architecture.png">
+</p>
+
+Only the output layer nodes are adapted according to the classification (sub-)task. One part in the ensemble model is a binary classifier that tries to distinguish between uppercase and lowercase characters. This is then forwarded to an uppercase and lowercase model with 26 classes each. Here is a confusion matrix of a trained and tuned binary classifier. It gets close to 85% accuracy on the dev set.
 
 <p align="center">
 <img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/binary_confusion.png">
 </p>
 
-In a combined model, it also makes sense to calculate conjoint probabilites instead of using absolute predictions. In the example of the binary classifier above, it means that the **probabilities** of being uppercase or lowercase are used in the downstream model pipeline and **not the predicted class** of the binary model. To evaluate how well this approach works, we will look at the confidence margin of the binary classifier. By "confidence margin" I mean the difference of the sigmoid output for `y=0` and `y=1`. If the value is close to 1, then the model is highly confident of predicting uppercase letters, and vice versa for a value close to -1. 
+In the final ensemble model, it also makes sense to calculate conjoint probabilities instead of using absolute sub-model predictions. Using the binary classifier from above, it means that the **probabilities** of being uppercase or lowercase are used in the downstream model pipeline and **not the absolute predicted class** of the binary model. This way, the conjoint probability for a lowercase `a` is calculated as follows `P(a) = P(case=lower) * P(lowercase=a)`, while an uppercase letter `J` would be `P(J) = P(case=upper) * P(uppercase=J)`. The argmax of this model pipeline is used to determine the final label.
 
-Here is how the confidence margin is distributed in the dev set for the uppercase/lowercase classification task:
+Another improvement to the model architecture is adding so called "error-based" models. In the analysis of the dev-set predictions, it has been shown that some characters are frequently confused, such as G, g, S, and s. Specific models on only those letters are trained to improve the accuracy even further (about 1-2% improvement). In the end, the final model architecture looks as follows, with the accuracy on the test-set being close to 75%.
 
 <p align="center">
-<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/binary_confidence.png">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/ensemble_architecture.png">
 </p>
 
-We can see that most of the time the binary classifier is very confident (p > 0.75). This information can be very useful when building a complex model pipeline.
+In the end, the model reached a competitive performance but just missed the podium. Still, I enjoyed taking part in it and made major improvements in various ML-tasks - from ETL pipelines, applying ML in the Cloud, to deployment.
