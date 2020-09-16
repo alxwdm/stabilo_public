@@ -212,7 +212,7 @@ gcloud ai-platform jobs submit training $JOBNAME \
 With 52 different classes to recognize, it makes sense to start thinking about more complex model architectures instead of using a single model in an end-to-end approach to classify all characters at once. However, the core model architecture stays the same. It consists of two consecutive LSTM layers followed by two fully-connected layers, as shown in the following diagramm:
 
 <p align="center">
-<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/model_architecture.png">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/model_architecture.png" width="500">
 </p>
 
 Only the output layer nodes are adapted according to the classification (sub-)task. One part in the ensemble model is a binary classifier that tries to distinguish between uppercase and lowercase characters. This is then forwarded to an uppercase and lowercase model with 26 classes each. Here is a confusion matrix of a trained and tuned binary classifier. It gets close to 85% accuracy on the dev set.
@@ -226,7 +226,7 @@ In the final ensemble model, it also makes sense to calculate conjoint probabili
 Another improvement to the model architecture is adding so called "error-based" models. In the analysis of the dev-set predictions, it has been shown that some characters are frequently confused, such as G, g, S, and s. Specific models on only those letters are trained to improve the accuracy even further (about 1-2% improvement). In the end, the final model architecture looks as follows, with the accuracy on the test-set being close to 75%.
 
 <p align="center">
-<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/ensemble_architecture.png">
+<img src="https://github.com/alxwdm/stabilo_public/blob/master/pics/ensemble_architecture.png" width="500">
 </p>
 
 In the end, the model reached a competitive performance but just missed the podium. Still, I enjoyed taking part in it and made major improvements in various ML-tasks - from ETL pipelines, applying ML in the Cloud, to deployment.
